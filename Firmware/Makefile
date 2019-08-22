@@ -20,7 +20,10 @@ MY_PROGRAMMER_PORT = lpt1
 
 # Уровень оптимизации (может быть 0, 1, 2, 3, s)
 # 0 - выключает оптимизацию, s - оптимизирует размер файла
-OPTIMIZATION_LEVEL = s
+OPTIMIZATION_LEVEL = 2
+
+#подключаемые модули
+SOURCE= based.c wh1602.c sd.c dram.c fat.c
 
 #=======================================
 
@@ -104,7 +107,7 @@ OBJDIR = obj
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC =$(TARGET).c
+SRC =$(TARGET).c $(SOURCE)
 
 
 # List C++ source files here. (C dependencies are automatically generated.)

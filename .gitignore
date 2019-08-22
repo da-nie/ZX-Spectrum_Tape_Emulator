@@ -3,9 +3,16 @@
 Thumbs.db
 #Ignore files built by Visual Studio
 *.obj
+*.sym
+*.map
+*.o
 *.exe
 *.pdb
 *.user
+*.o.d
+*.eep
+*.elf
+*.lss
 *.aps
 *.pch
 *.vspscc

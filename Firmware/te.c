@@ -1,48 +1,41 @@
 //----------------------------------------------------------------------------------------------------
-//частота контроллера
+//подключаемые библиотеки
 //----------------------------------------------------------------------------------------------------
-#define F_CPU 16000000UL
-
-#define bool unsigned char
-#define true  1
-#define false 0
+#include "based.h"
 
 //----------------------------------------------------------------------------------------------------
-//библиотеки
+//константы
 //----------------------------------------------------------------------------------------------------
-#include <avr/io.h>
-#include <util/delay.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <avr/pgmspace.h>
-#include <avr/interrupt.h>
+
+static const char Text_Main_Menu_Select[] PROGMEM =       "    Выберите    \0";
+static const char Text_Main_Memory_Test[] PROGMEM =       "   Тест памяти  \0";
+static const char Text_Main_Memory_Test_Error[] PROGMEM = " Ошибка памяти !\0";
+static const char Text_Main_Memory_Test_OK[] PROGMEM =    "Память исправна \0";
+static const char Text_Tape_Menu_No_Image[] PROGMEM =     "Нет файлов tap !\0";
+
+
 //----------------------------------------------------------------------------------------------------
 //глобальные переменные
 //----------------------------------------------------------------------------------------------------
-const char Text_Main_Menu_Select[] PROGMEM =       "    Выберите    \0";
-const char Text_Main_Memory_Test[] PROGMEM =       "   Тест памяти  \0";
-const char Text_Main_Memory_Test_Error[] PROGMEM = " Ошибка памяти !\0";
-const char Text_Main_Memory_Test_OK[] PROGMEM =    "Память исправна \0";
-const char Text_Tape_Menu_No_Image[] PROGMEM =     "Нет файлов tap !\0";
 
-char string[25];
+extern char String[25];//строка
 
-unsigned short BlockSize=0;//размер блока данных в памяти
-volatile unsigned short DataCounter=0;//колиество выданных байт данных
+uint16_t BlockSize=0;//размер блока данных в памяти
+volatile uint16_t DataCounter=0;//колиество выданных байт данных
 volatile short LeadToneCounter=0;//время выдачи пилот-тона
-volatile unsigned char TapeOutMode=0;//режим вывода
+volatile uint8_t TapeOutMode=0;//режим вывода
 bool TapeOutVolume=false;//выдаваемый сигнал
-volatile unsigned char Speed;//скорость работы
+volatile uint8_t Speed;//скорость работы
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //макроопределения
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#define TAPE_OUT_LEAD      0
-#define TAPE_OUT_SYNCHRO_1 1
-#define TAPE_OUT_SYNCHRO_2 2
-#define TAPE_OUT_DATA      3
-#define TAPE_OUT_STOP      4
+static const uint8_t TAPE_OUT_LEAD=0;
+static const uint8_t TAPE_OUT_SYNCHRO_1=1;
+static const uint8_t TAPE_OUT_SYNCHRO_2=2;
+static const uint8_t TAPE_OUT_DATA=3;
+static const uint8_t TAPE_OUT_STOP=4;
+
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //настройки кнопок
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -86,6 +79,7 @@ void InitAVR(void);//инициализация контроллера
 //----------------------------------------------------------------------------------------------------
 //дополнительные библиотеки
 //----------------------------------------------------------------------------------------------------
+
 #include "dram.h"
 #include "wh1602.h"
 #include "sd.h"
@@ -102,15 +96,15 @@ int main(void)
  SD_Init();
  FAT_Init();
  //запускаем основное меню
- unsigned char select_item=0;
+ uint8_t select_item=0;
  while(1)
  {  
   WH1602_SetTextProgmemUpLine(Text_Main_Menu_Select);
-  if (select_item==0) strcpy(string,"> Магнитофон x1 <");
-  if (select_item==1) strcpy(string,"> Магнитофон x2 <");
-  if (select_item==2) strcpy(string,"> Магнитофон x4 <"); 
-  if (select_item==3) strcpy(string,">  Тест памяти  <");
-  WH1602_SetTextDownLine(string); 
+  if (select_item==0) strcpy(String,"> Магнитофон x1 <");
+  if (select_item==1) strcpy(String,"> Магнитофон x2 <");
+  if (select_item==2) strcpy(String,"> Магнитофон x4 <"); 
+  if (select_item==3) strcpy(String,">  Тест памяти  <");
+  WH1602_SetTextDownLine(String); 
   _delay_ms(500);
   //ждём нажатий кнопок
   while(1)
@@ -162,7 +156,7 @@ int main(void)
 //----------------------------------------------------------------------------------------------------
 void TapeMenu(void)
 {
- unsigned char n;
+ uint8_t n;
  //переходим к первому имени файла на карте
  if (FAT_BeginFileSearch()==false)
  {
@@ -171,28 +165,28 @@ void TapeMenu(void)
   _delay_ms(2000);
   return;//нет ни одного файла
  }
- signed char Directory;//это директория
- unsigned long FirstCluster;//первый кластер файла
- unsigned long Size;//размер файла
- unsigned short index=1;//номер файла
- unsigned short level_index[20];//20 уровней вложенности
- unsigned char level=0;
+ int8_t Directory;//это директория
+ uint32_t FirstCluster;//первый кластер файла
+ uint32_t Size;//размер файла
+ uint16_t index=1;//номер файла
+ uint16_t level_index[20];//20 уровней вложенности
+ uint8_t level=0;
  level_index[0]=index;
  while(1)
  { 
   //выводим данные с SD-карты
   //читаем имя файла 
-  if (FAT_GetFileSearch(string,&FirstCluster,&Size,&Directory)==true) WH1602_SetTextDownLine(string);
-  if (Directory==false) sprintf(string,"[%02u:%05u] Файл",level,index);
-                   else sprintf(string,"[%02u:%05u] Папка",level,index);
-  WH1602_SetTextUpLine(string);  
+  if (FAT_GetFileSearch(String,&FirstCluster,&Size,&Directory)==true) WH1602_SetTextDownLine(String);
+  if (Directory==false) sprintf(String,"[%02u:%05u] Файл",level,index);
+                   else sprintf(String,"[%02u:%05u] Папка",level,index);
+  WH1602_SetTextUpLine(String);  
   _delay_ms(200);
   //ждём нажатий кнопок
   while(1)
   {
    if (BUTTON_UP_PIN&(1<<BUTTON_UP))
    {
-    unsigned char i=1;
+    uint8_t i=1;
 	if (BUTTON_CENTER_PIN&(1<<BUTTON_CENTER)) i=10;
 	for(n=0;n<i;n++)
 	{
@@ -203,7 +197,7 @@ void TapeMenu(void)
    }
    if (BUTTON_DOWN_PIN&(1<<BUTTON_DOWN))
    {
-    unsigned char i=1;
+    uint8_t i=1;
 	if (BUTTON_CENTER_PIN&(1<<BUTTON_CENTER)) i=10;
 	for(n=0;n<i;n++)
 	{
@@ -232,7 +226,7 @@ void TapeMenu(void)
 	 index=1;
 	 if (level<20)
 	 {
-	  for(unsigned short s=1;s<level_index[level];s++)
+	  for(uint16_t s=1;s<level_index[level];s++)
 	  {
        if (FAT_NextFileSearch()==true) index++;
                                    else break; 
@@ -249,35 +243,35 @@ void TapeMenu(void)
 //----------------------------------------------------------------------------------------------------
 void MemoryTest(void)
 { 
- unsigned char last_p=0xff;
+ uint8_t last_p=0xff;
  WH1602_SetTextProgmemUpLine(Text_Main_Memory_Test);  
- for(unsigned short b=0;b<=255;b++)
+ for(uint16_t b=0;b<=255;b++)
  {   
-  unsigned char progress=(unsigned char)(100UL*(long)b/255UL);
+  uint8_t progress=(uint8_t)(100UL*(int32_t)b/255UL);
   if (progress!=last_p)
   {
-   sprintf(string,"Выполнено:%i %%",progress);
-   WH1602_SetTextDownLine(string); 
+   sprintf(String,"Выполнено:%i %%",progress);
+   WH1602_SetTextDownLine(String); 
    last_p=progress;
   } 
   //записываем в ОЗУ значения 
-  for(unsigned long addr=0;addr<131072UL;addr++)
+  for(uint32_t addr=0;addr<131072UL;addr++)
   {   
-   unsigned char byte=(b+addr)&0xff;
+   uint8_t byte=(b+addr)&0xff;
    DRAM_WriteByte(addr,byte);   
    DRAM_Refresh();
   }
   //проверяем, что записанное в ОЗУ совпадает со считанным
-  for(unsigned long addr=0;addr<131072UL;addr++)
+  for(uint32_t addr=0;addr<131072UL;addr++)
   {   
-   unsigned char byte=(b+addr)&0xff;
-   unsigned char byte_r=DRAM_ReadByte(addr);
+   uint8_t byte=(b+addr)&0xff;
+   uint8_t byte_r=DRAM_ReadByte(addr);
    DRAM_Refresh();
    if (byte!=byte_r)
    {
     WH1602_SetTextProgmemUpLine(Text_Main_Memory_Test_Error);
-    sprintf(string,"%05x = [%02x , %02x]",(unsigned int)addr,byte,byte_r);
-    WH1602_SetTextDownLine(string);
+    sprintf(String,"%05x = [%02x , %02x]",(unsigned int)addr,byte,byte_r);
+    WH1602_SetTextDownLine(String);
 	_delay_ms(5000);
     return;
    }
@@ -286,27 +280,27 @@ void MemoryTest(void)
  
  /*
  
- unsigned char last_p=0xff;
- for(unsigned long addr=0;addr<131072UL;addr++)
+ uint8_t last_p=0xff;
+ for(uint32_t addr=0;addr<131072UL;addr++)
  {
-  unsigned char progress=(unsigned char)(100UL*addr/131071UL);
+  uint8_t progress=(uint8_t)(100UL*addr/131071UL);
   if (progress!=last_p)
   {
-   sprintf(string,"Выполнено:%i %%",progress);
-   WH1602_SetTextDownLine(string); 
+   sprintf(String,"Выполнено:%i %%",progress);
+   WH1602_SetTextDownLine(String); 
    last_p=progress;
   }  
-  unsigned char byte=0x01;
-  for(unsigned char n=0;n<8;n++,byte<<=1)
+  uint8_t byte=0x01;
+  for(uint8_t n=0;n<8;n++,byte<<=1)
   {
    DRAM_WriteByte(addr,byte);
    DRAM_Refresh();
-   unsigned char byte_r=DRAM_ReadByte(addr);
+   uint8_t byte_r=DRAM_ReadByte(addr);
    if (byte!=byte_r)
    {
     WH1602_SetTextProgmemUpLine(Text_Main_Memory_Test_Error);
-    sprintf(string,"%05x = [%02x , %02x]",(unsigned int)addr,byte,byte_r);
-    WH1602_SetTextDownLine(string);
+    sprintf(String,"%05x = [%02x , %02x]",(unsigned int)addr,byte,byte_r);
+    WH1602_SetTextDownLine(String);
 	_delay_ms(5000);
     return;
    }
@@ -323,20 +317,20 @@ void OutputImage(void)
 {
  _delay_ms(500);
  //повторяем для каждого блока tap-файла
- unsigned short block=0;
+ uint16_t block=0;
  while(1)
  {  
   if (FAT_WriteBlock(&BlockSize,block)==false) break;//блоки файла закончились 
   //выводим номер блока файла
-  sprintf(string,"Блок:%u [%u]",block+1,BlockSize);
-  WH1602_SetTextUpLine(string);  
+  sprintf(String,"Блок:%u [%u]",block+1,BlockSize);
+  WH1602_SetTextUpLine(String);  
   //запускаем таймер и регенерируем память    
   TCNT0=0;//начальное значение таймера
   LeadToneCounter=6000<<Speed;
   TapeOutMode=TAPE_OUT_LEAD;
   TapeOutVolume=false;    
   DataCounter=0;
-  unsigned short dl=0;
+  uint16_t dl=0;
   sei();  
   while(1)
   {
@@ -344,13 +338,13 @@ void OutputImage(void)
    DRAM_Refresh();
    if (TapeOutMode==TAPE_OUT_STOP) 
    {    
-    sprintf(string,"Блок:%u [0]",block+1);
-    WH1602_SetTextUpLine(string);
-    unsigned short new_block=block+1;
+    sprintf(String,"Блок:%u [0]",block+1);
+    WH1602_SetTextUpLine(String);
+    uint16_t new_block=block+1;
     //формируем паузу
     int delay=200;
     if (BlockSize>0x13) delay=500;//передавался файл
-    for(unsigned short n=0;n<delay;n++)
+    for(uint16_t n=0;n<delay;n++)
     {
      _delay_ms(10);
      if (BUTTON_SELECT_PIN&(1<<BUTTON_SELECT))//выход
@@ -383,15 +377,15 @@ void OutputImage(void)
 	block=new_block;
     break;   
    }
-   unsigned short dc=BlockSize-DataCounter;
-   unsigned short tm=TapeOutMode;
+   uint16_t dc=BlockSize-DataCounter;
+   uint16_t tm=TapeOutMode;
    sei();
    if (tm==TAPE_OUT_DATA)
    {       
     if (dl==30000)
 	{
-     sprintf(string,"Блок:%u [%u]",block+1,dc);
-     WH1602_SetTextUpLine(string);
+     sprintf(String,"Блок:%u [%u]",block+1,dc);
+     WH1602_SetTextUpLine(String);
 	 dl=0;
 	}
 	else dl++;
@@ -484,9 +478,9 @@ void InitAVR(void)
 //----------------------------------------------------------------------------------------------------
 ISR(TIMER0_OVF_vect)
 { 
- static unsigned char byte=0;//выдаваемый байт
- static unsigned char index=0;//номер выдаваемого бита
- static unsigned short addr=0;//текущий адрес
+ static uint8_t byte=0;//выдаваемый байт
+ static uint8_t index=0;//номер выдаваемого бита
+ static uint16_t addr=0;//текущий адрес
  TCNT0=0;
  if (TapeOutMode==TAPE_OUT_STOP)
  {

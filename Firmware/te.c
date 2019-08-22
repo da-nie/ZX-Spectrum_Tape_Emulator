@@ -83,7 +83,6 @@ void MemoryTest(void);//тест памяти
 void OutputImage(void);//запуск образа
 void WaitAnyKey(void);//ожидание любой клавиши
 void InitAVR(void);//инициализация контроллера
-
 //----------------------------------------------------------------------------------------------------
 //дополнительные библиотеки
 //----------------------------------------------------------------------------------------------------
@@ -172,16 +171,21 @@ void TapeMenu(void)
   _delay_ms(2000);
   return;//нет ни одного файла
  }
+ signed char Directory;//это директория
  unsigned long FirstCluster;//первый кластер файла
  unsigned long Size;//размер файла
  unsigned short index=1;//номер файла
+ unsigned short level_index[20];//20 уровней вложенности
+ unsigned char level=0;
+ level_index[0]=index;
  while(1)
  { 
-  sprintf(string,"Файл: %u",index);
-  WH1602_SetTextUpLine(string);
   //выводим данные с SD-карты
   //читаем имя файла 
-  if (FAT_GetFileSearch(string,&FirstCluster,&Size)==true) WH1602_SetTextDownLine(string);
+  if (FAT_GetFileSearch(string,&FirstCluster,&Size,&Directory)==true) WH1602_SetTextDownLine(string);
+  if (Directory==false) sprintf(string,"[%02u:%05u] Файл",level,index);
+                   else sprintf(string,"[%02u:%05u] Папка",level,index);
+  WH1602_SetTextUpLine(string);  
   _delay_ms(200);
   //ждём нажатий кнопок
   while(1)
@@ -207,11 +211,34 @@ void TapeMenu(void)
 	                             else break;
 	}
     break;
-   }
-   
+   }   
    if (BUTTON_SELECT_PIN&(1<<BUTTON_SELECT))
    {
-    OutputImage();
+    if (Directory==0) OutputImage();//для файла - запускаем на выполнение
+    else
+	{
+	 if (level<20) level_index[level]=index;//запоминаем достигнутый уровень
+     if (Directory<0)//если мы вышли на уровень вверх
+	 {
+	  if (level>0) level--;
+	 }
+	 else
+	 {
+	  level++;
+      if (level<20) level_index[level]=1;
+	 }
+     FAT_EnterDirectory(FirstCluster);//заходим в директорию	
+	 //проматываем до выбранного файла
+	 index=1;
+	 if (level<20)
+	 {
+	  for(unsigned short s=1;s<level_index[level];s++)
+	  {
+       if (FAT_NextFileSearch()==true) index++;
+                                   else break; 
+	  }
+	 }
+	}
     break;
    }
   }

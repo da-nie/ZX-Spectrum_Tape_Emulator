@@ -334,7 +334,7 @@ void OutputImage(void)
   TCNT0=0;//начальное значение таймера
   LeadToneCounter=6000<<Speed;
   TapeOutMode=TAPE_OUT_LEAD;
-  TapeOutVolume=0;    
+  TapeOutVolume=false;    
   DataCounter=0;
   unsigned short dl=0;
   sei();  
@@ -549,7 +549,7 @@ ISR(TIMER0_OVF_vect)
   }
   //выдаём бит
   if (byte&128) TCNT0=255-(112>>Speed);//начальное значение таймера
-            else TCNT0=255-(56>>Speed);//начальное значение таймера
+           else TCNT0=255-(56>>Speed);//начальное значение таймера
   if ((index%2)==1) byte<<=1;  
   index++;
   return;		

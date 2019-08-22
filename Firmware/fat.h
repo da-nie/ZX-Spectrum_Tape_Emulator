@@ -169,8 +169,7 @@ void FAT_Init(void)
  if (CountofClusters<4085UL)
  {
   WH1602_SetTextProgmemDownLine(Text_FAT12);
-  _delay_ms(5000);
-  FATType=FAT12;
+  while(1);
  }
  else
  {
@@ -183,8 +182,8 @@ void FAT_Init(void)
   else
   {
    WH1602_SetTextProgmemDownLine(Text_FAT32);
-   _delay_ms(5000);
    FATType=FAT32;
+   while(1);   
   }
  }
  if (FATType==FAT12) return;//не поддерживаем
@@ -619,7 +618,6 @@ unsigned long GetByte(unsigned long offset)
  if (s!=LastReadSector)
  {
   LastReadSector=s;
-  s<<=9UL;
   SD_ReadBlock(s,Sector);
   //ошибки не проверяем, всё равно ничего сделать не сможем - либо работает, либо нет
  }

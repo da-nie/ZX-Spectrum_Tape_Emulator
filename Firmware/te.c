@@ -249,7 +249,43 @@ void TapeMenu(void)
 //----------------------------------------------------------------------------------------------------
 void MemoryTest(void)
 { 
+ unsigned char last_p=0xff;
  WH1602_SetTextProgmemUpLine(Text_Main_Memory_Test);  
+ for(unsigned short b=0;b<=255;b++)
+ {   
+  unsigned char progress=(unsigned char)(100UL*(long)b/255UL);
+  if (progress!=last_p)
+  {
+   sprintf(string,"Выполнено:%i %%",progress);
+   WH1602_SetTextDownLine(string); 
+   last_p=progress;
+  } 
+  //записываем в ОЗУ значения 
+  for(unsigned long addr=0;addr<131072UL;addr++)
+  {   
+   unsigned char byte=(b+addr)&0xff;
+   DRAM_WriteByte(addr,byte);   
+   DRAM_Refresh();
+  }
+  //проверяем, что записанное в ОЗУ совпадает со считанным
+  for(unsigned long addr=0;addr<131072UL;addr++)
+  {   
+   unsigned char byte=(b+addr)&0xff;
+   unsigned char byte_r=DRAM_ReadByte(addr);
+   DRAM_Refresh();
+   if (byte!=byte_r)
+   {
+    WH1602_SetTextProgmemUpLine(Text_Main_Memory_Test_Error);
+    sprintf(string,"%05x = [%02x , %02x]",(unsigned int)addr,byte,byte_r);
+    WH1602_SetTextDownLine(string);
+	_delay_ms(5000);
+    return;
+   }
+  }
+ }
+ 
+ /*
+ 
  unsigned char last_p=0xff;
  for(unsigned long addr=0;addr<131072UL;addr++)
  {
@@ -275,7 +311,7 @@ void MemoryTest(void)
     return;
    }
   }
- }
+ }*/
  WH1602_SetTextProgmemUpLine(Text_Main_Memory_Test_OK);
  WH1602_SetTextDownLine("");
  _delay_ms(3000);

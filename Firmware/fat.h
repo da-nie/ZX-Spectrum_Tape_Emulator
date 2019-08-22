@@ -3,18 +3,18 @@
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //BOOT-сектор и структура BPB
 #define BS_jmpBoot			0
-#define BS_OEMName			3
+#define BS_OEMName		3
 #define BPB_BytsPerSec		11
 #define BPB_SecPerClus		13
 #define BPB_ResvdSecCnt		14
-#define BPB_NumFATs			16
+#define BPB_NumFATs		16
 #define BPB_RootEntCnt		17
 #define BPB_TotSec16		19
 #define BPB_Media			21
-#define BPB_FATSz16			22
+#define BPB_FATSz16		22
 #define BPB_SecPerTrk		24
 #define BPB_NumHeads		26
-#define BPB_HiddSec			28
+#define BPB_HiddSec		28
 #define BPB_TotSec32		32
 #define BS_DrvNum			36
 #define BS_Reserved1		37
@@ -22,7 +22,7 @@
 #define BS_VolID			39
 #define BS_VolLab			43
 #define BS_FilSysType		54
-#define BPB_FATSz32			36
+#define BPB_FATSz32		36
 #define BPB_ExtFlags		40
 #define BPB_FSVer			42
 #define BPB_RootClus		44
@@ -40,11 +40,11 @@
 
 //атрибуты файла
 #define ATTR_READ_ONLY		0x01
-#define ATTR_HIDDEN 		0x02
-#define ATTR_SYSTEM 		0x04
+#define ATTR_HIDDEN 			0x02
+#define ATTR_SYSTEM 			0x04
 #define ATTR_VOLUME_ID 		0x08
-#define ATTR_DIRECTORY		0x10
-#define ATTR_ARCHIVE  		0x20
+#define ATTR_DIRECTORY			0x10
+#define ATTR_ARCHIVE  			0x20
 #define ATTR_LONG_NAME 		(ATTR_READ_ONLY | ATTR_HIDDEN | ATTR_SYSTEM | ATTR_VOLUME_ID)
 
 
@@ -52,7 +52,7 @@
 //глобальные переменные
 //----------------------------------------------------------------------------------------------------
 unsigned char Sector[512];//данные для сектора
-unsigned long LastReadSector=0xffffffff;//последний считанный сектор
+unsigned long LastReadSector=0xffffffffUL;//последний считанный сектор
 unsigned long FATOffset=0;//смещение FAT
 
 //структура доля поиска файлов внутри каталога
@@ -115,16 +115,27 @@ void FAT_Init(void)
  LastReadSector=0xffffffffUL;
  //ищем FAT
  FATOffset=0;
+ /*
+ unsigned short a=GetByte(1024UL);
+ LastReadSector=0xffffffffUL;
+ a=GetByte(0UL);
+ unsigned short b=GetByte(510UL);
+ unsigned short c=GetByte(511UL);
+ char str[16];
+ sprintf(str,"%x %x %x",a,b,c);
+ WH1602_SetTextDownLine(str);
+ _delay_ms(10000);*/
+ 
  for(unsigned long fo=0;fo<33554432UL;fo++)
  {
   unsigned char b=GetByte(fo); 
-  if (b==233 || b==235)
+  if (b==0xE9 || b==0xEB)
   {
    b=GetByte(fo+511UL);
-   if (b==170)   
+   if (b==0xAA)   
    {
     b=GetByte(fo+510UL);
-    if (b==85)
+    if (b==0x55)
 	{
      FATOffset=fo;
      break;
@@ -452,8 +463,8 @@ bool FAT_GetFileSearch(char *filename,unsigned long *FirstCluster,unsigned long 
  }
  if (res==true)
  {
-  unsigned char type=GetByte(sFATRecordPointer.CurrentFolderAddr+11UL);
-  if (type&ATTR_VOLUME_ID) return(false);//этот файл - имя диска     
+  unsigned char type=GetByte(sFATRecordPointer.CurrentFolderAddr+11UL);  
+  if (type&ATTR_VOLUME_ID) return(false);//этот файл - имя диска  
   if ((type&ATTR_DIRECTORY)==0)//это файл
   {
    unsigned char a=GetByte(sFATRecordPointer.CurrentFolderAddr+10UL);
@@ -474,7 +485,7 @@ bool FAT_GetFileSearch(char *filename,unsigned long *FirstCluster,unsigned long 
   *Size=GetLong(sFATRecordPointer.CurrentFolderAddr+28UL);
   if (filename!=NULL)
   {
-   if ((type&ATTR_DIRECTORY)==0) filename[8]='.';//файлу добавляем точку
+   if ((type&ATTR_DIRECTORY)==0) filename[8]='.';//файлу добавляем точку    
    filename[12]=0;   
    //поищем длинное имя файла   
    struct SFATRecordPointer sFATRecordPointer_Local=sFATRecordPointer;
@@ -608,7 +619,8 @@ unsigned long GetByte(unsigned long offset)
  if (s!=LastReadSector)
  {
   LastReadSector=s;
-  SD_ReadBlock(offset&0xfffffe00UL,Sector);
+  s<<=9UL;
+  SD_ReadBlock(s,Sector);
   //ошибки не проверяем, всё равно ничего сделать не сможем - либо работает, либо нет
  }
  return(Sector[offset&0x1FFUL]);

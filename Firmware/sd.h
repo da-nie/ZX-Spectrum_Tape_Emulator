@@ -52,7 +52,7 @@ void SD_Init(void)
  SD_SCK_DDR|=(1<<SD_SCK);
  SD_DO_DDR&=0xff^(1<<SD_DO);
  //вывод SPI SS в режиме MASTER сконфигурирован как выход и на SPI не влияет
- _delay_ms(100);//пауза, пока карта не включится
+ _delay_ms(1000);//пауза, пока карта не включится
  unsigned char n;
  //шлём не менее 74 импульсов синхронизации при высоком уровне на CS и DI 
  SD_CS_PORT|=(1<<SD_CS);
@@ -67,8 +67,8 @@ void SD_Init(void)
  }
  SD_CS_PORT&=0xff^(1<<SD_CS);
  //настраиваем SPI
- SPCR=(0<<SPIE)|(1<<SPE)|(0<<DORD)|(1<<MSTR)|(0<<CPOL)|(0<<CPHA)|(0<<SPR1)|(0<<SPR0);
- SPSR=(1<<SPI2X);//удвоенная скорость SPI
+ SPCR=(0<<SPIE)|(1<<SPE)|(0<<DORD)|(1<<MSTR)|(0<<CPOL)|(0<<CPHA)|(1<<SPR1)|(1<<SPR0);
+ SPSR=(0<<SPI2X);//удвоенная скорость SPI
  _delay_ms(100);
  unsigned char answer=SD_SendCommandR1(0x40,0x00,0x00,0x00,0x00);//CMD0 
  if (answer!=1)//ошибка
@@ -85,17 +85,17 @@ void SD_Init(void)
   answer=SD_SendCommandR1(0x41,0x00,0x00,0x00,0x00);//CMD1
   SD_TransmitData(0xff);
   if (answer==0) break;//инициализация успешна
-  _delay_us(1);
+  _delay_us(10);
  }
  if (m==65535)
  {
   WH1602_SetTextProgmemUpLine(Text_SD_No_Response);
   _delay_ms(3000); 
   return; 
- }
+ } 
  //узнаем объём карты памяти
  unsigned long SD_Size=SD_GetSize();
- if (SD_Size==0xffff)//ошибка
+ if (SD_Size==0xffffUL)//ошибка
  {
   WH1602_SetTextProgmemUpLine(Text_SD_Size_Error_Up);
   WH1602_SetTextProgmemDownLine(Text_SD_Size_Error_Down);
@@ -106,7 +106,7 @@ void SD_Init(void)
  sprintf(string,"%i МБ",size);
  WH1602_SetTextProgmemUpLine(Text_SD_Size);
  WH1602_SetTextDownLine(string);
- _delay_ms(1000); 
+ _delay_ms(1000);
 }
 
 //----------------------------------------------------------------------------------------------------
@@ -155,6 +155,7 @@ unsigned char SD_SendCommandR1(unsigned char b0,unsigned char b1,unsigned char b
   {
    return(res);//это действительно ответ
   }
+  _delay_us(10);
  }
  return(0xff);//ответ не принят
 }
@@ -169,7 +170,7 @@ unsigned long SD_GetSize(void)
  for(n=0;n<65535;n++)
  {
   if (SD_TransmitData(0xff)==0xfe) break;//получено начало ответа
-  _delay_us(1);
+  _delay_us(10);
  }
  if (n==65535) return(0xffff);//ответ не принят
  unsigned char b[16];
@@ -220,6 +221,7 @@ bool SD_BeginReadBlock(unsigned long BlockAddr)
  {
   res=SD_TransmitData(0xff);
   if (res==0xfe) break;//маркер получен
+  _delay_us(10);
  }
  if (n==65535) return(false);//маркер начала данных не получен
  BlockByteCounter=0;
@@ -260,6 +262,7 @@ bool SD_ReadBlock(unsigned long BlockAddr,unsigned char *Addr)
  {
   res=SD_TransmitData(0xff);
   if (res==0xfe) break;//маркер получен
+  _delay_us(10);
  }
  if (n==65535) return(false);//маркер начала данных не получен
  for(n=0;n<512;n++,Addr++)

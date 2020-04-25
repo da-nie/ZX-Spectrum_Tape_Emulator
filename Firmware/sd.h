@@ -16,5 +16,6 @@ bool SD_GetSize(uint32_t *size);//получить объём SD-карты в байтах
 bool SD_BeginReadBlock(uint32_t BlockAddr);//начать чтение блока
 bool SD_ReadBlockByte(uint8_t *byte);//считать байт блока
 bool SD_ReadBlock(uint32_t BlockAddr,uint8_t *Addr);//считать блок в 512 байт в память
+bool SD_WriteBlock(uint32_t BlockAddr,const uint8_t *Addr);//записать блок в 512 байт из памяти
 
 #endif

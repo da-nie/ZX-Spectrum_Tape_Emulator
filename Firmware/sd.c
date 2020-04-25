@@ -35,6 +35,7 @@
 #define CMD9  (CMD0+9)
 #define CMD16 (CMD0+16)
 #define CMD17 (CMD0+17)
+#define CMD24 (CMD0+24)
 #define CMD55 (CMD0+55)
 #define CMD58 (CMD0+58)
 
@@ -412,5 +413,50 @@ bool SD_ReadBlock(uint32_t BlockAddr,uint8_t *Addr)
  //считываем CRC
  SD_TransmitData(0xff);
  SD_TransmitData(0xff); 
+ return(true);
+}
+//----------------------------------------------------------------------------------------------------
+//записать блок в 512 байт из памяти
+//----------------------------------------------------------------------------------------------------
+bool SD_WriteBlock(uint32_t BlockAddr,const uint8_t *Addr)
+{
+ if (SDType!=SD_TYPE_SD_V2_HC) BlockAddr<<=9;//умножаем на 512 для старых карт памяти
+ //даём команду записи блока
+ uint8_t a1=(uint8_t)((BlockAddr>>24)&0xff);
+ uint8_t a2=(uint8_t)((BlockAddr>>16)&0xff);
+ uint8_t a3=(uint8_t)((BlockAddr>>8)&0xff);
+ uint8_t a4=(uint8_t)(BlockAddr&0xff);
+ uint8_t answer[ANSWER_R1_SIZE];
+ bool ret=SD_SendCommand(CMD24,a4,a3,a2,a1,ANSWER_R1_SIZE,answer);//посылаем CMD24
+ if (ret==false || answer[0]!=0) return(false);//ошибка команды
+ SD_TransmitData(0xff);//байтовый промежуток
+ SD_TransmitData(0xfe);//маркер начала записи блока
+ uint16_t CRC16=0;	
+ for(uint16_t n=0;n<512;n++,Addr++) 
+ {
+  uint8_t b=*Addr;
+  SD_TransmitData(b);//передаем байт SD-карте
+  CRC16^=b<<8;
+  for (uint8_t i=0;i<8;i++) 
+  { 
+   if (CRC16&0x8000) CRC16=(CRC16<<1)^0x1021;
+                else CRC16<<=1;	 
+  }
+ }
+ //передаем CRC
+ SD_TransmitData((CRC16>>8)&0xff);
+ SD_TransmitData(CRC16&0xff);
+ //получаем ответ карты
+ uint8_t res=SD_TransmitData(0xff);
+ if ((res&0x05)!=0x05) return(false);//если ответ не "данные приняты"
+ SD_TransmitData(0xff);//байтовый промежуток
+ SD_TransmitData(0xff);//байтовый промежуток
+ //ждём завершения записи (линия DO находится в 0, пока карта занята)
+ for(uint16_t n=0;n<65535;n++)
+ {
+  res=SD_TransmitData(0xff);
+  if (res==0xff) break;//линия DO снова в 1; карта произвела запись
+  _delay_ms(1);
+ } 
  return(true);
 }

@@ -23,7 +23,7 @@ MY_PROGRAMMER_PORT = lpt1
 OPTIMIZATION_LEVEL = 2
 
 #подключаемые модули
-SOURCE= based.c wh1602.c sd.c dram.c fat.c
+SOURCE= based.c wh1602.c sd.c dram.c ff.c ffsystem.c ffunicode.c diskio.c fat.c
 
 #=======================================
 

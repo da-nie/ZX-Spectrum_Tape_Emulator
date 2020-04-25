@@ -2,6 +2,10 @@
 //подключаемые библиотеки
 //----------------------------------------------------------------------------------------------------
 #include "based.h"
+#include "dram.h"
+#include "wh1602.h"
+#include "sd.h"
+#include "fat.h"
 
 //----------------------------------------------------------------------------------------------------
 //константы
@@ -13,19 +17,18 @@ static const char Text_Main_Memory_Test_Error[] PROGMEM = " Ошибка памяти !\0";
 static const char Text_Main_Memory_Test_OK[] PROGMEM =    "Память исправна \0";
 static const char Text_Tape_Menu_No_Image[] PROGMEM =     "Нет файлов tap !\0";
 
-
 //----------------------------------------------------------------------------------------------------
 //глобальные переменные
 //----------------------------------------------------------------------------------------------------
 
 extern char String[25];//строка
 
-uint16_t BlockSize=0;//размер блока данных в памяти
-volatile uint16_t DataCounter=0;//колиество выданных байт данных
-volatile short LeadToneCounter=0;//время выдачи пилот-тона
-volatile uint8_t TapeOutMode=0;//режим вывода
-bool TapeOutVolume=false;//выдаваемый сигнал
-volatile uint8_t Speed;//скорость работы
+static uint16_t BlockSize=0;//размер блока данных в памяти
+static volatile uint16_t DataCounter=0;//колиество выданных байт данных
+static volatile short LeadToneCounter=0;//время выдачи пилот-тона
+static volatile uint8_t TapeOutMode=0;//режим вывода
+static bool TapeOutVolume=false;//выдаваемый сигнал
+static volatile uint8_t Speed;//скорость работы
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //макроопределения
@@ -76,14 +79,6 @@ void MemoryTest(void);//тест памяти
 void OutputImage(void);//запуск образа
 void WaitAnyKey(void);//ожидание любой клавиши
 void InitAVR(void);//инициализация контроллера
-//----------------------------------------------------------------------------------------------------
-//дополнительные библиотеки
-//----------------------------------------------------------------------------------------------------
-
-#include "dram.h"
-#include "wh1602.h"
-#include "sd.h"
-#include "fat.h"
 
 //----------------------------------------------------------------------------------------------------
 //основная функция программы
@@ -94,7 +89,8 @@ int main(void)
  DRAM_Init();
  WH1602_Init(); 
  SD_Init();
- FAT_Init();
+ FAT_Init(); 
+ 
  //запускаем основное меню
  uint8_t select_item=0;
  while(1)
@@ -104,7 +100,7 @@ int main(void)
   if (select_item==1) strcpy(String,"> Магнитофон x2 <");
   if (select_item==2) strcpy(String,"> Магнитофон x4 <"); 
   if (select_item==3) strcpy(String,">  Тест памяти  <");
-  WH1602_SetTextDownLine(String); 
+  WH1602_SetTextDownLine(String);
   _delay_ms(500);
   //ждём нажатий кнопок
   while(1)
@@ -151,6 +147,9 @@ int main(void)
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+
+
+
 //----------------------------------------------------------------------------------------------------
 //меню магнитофона
 //----------------------------------------------------------------------------------------------------
@@ -165,9 +164,8 @@ void TapeMenu(void)
   _delay_ms(2000);
   return;//нет ни одного файла
  }
- int8_t Directory;//это директория
- uint32_t FirstCluster;//первый кластер файла
- uint32_t Size;//размер файла
+ bool directory;//это директория
+ uint32_t size;//размер файла
  uint16_t index=1;//номер файла
  uint16_t level_index[20];//20 уровней вложенности
  uint8_t level=0;
@@ -176,7 +174,7 @@ void TapeMenu(void)
  { 
   //выводим данные с SD-карты
   //читаем имя файла 
-  if (FAT_GetFileSearch(String,&FirstCluster,&Size,&Directory)==true) WH1602_SetTextDownLine(String);
+  if (FAT_GetFileSearch(String,&size,&directory)==true) WH1602_SetTextDownLine(String);
   if (Directory==false) sprintf(String,"[%02u:%05u] Файл",level,index);
                    else sprintf(String,"[%02u:%05u] Папка",level,index);
   WH1602_SetTextUpLine(String);  
@@ -320,7 +318,7 @@ void OutputImage(void)
  uint16_t block=0;
  while(1)
  {  
-  if (FAT_WriteBlock(&BlockSize,block)==false) break;//блоки файла закончились 
+  if (FATWriteBlock(&BlockSize,block)==false) break;//блоки файла закончились 
   //выводим номер блока файла
   sprintf(String,"Блок:%u [%u]",block+1,BlockSize);
   WH1602_SetTextUpLine(String);  

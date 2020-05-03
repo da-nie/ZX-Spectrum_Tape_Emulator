@@ -252,6 +252,9 @@ void SD_Init(void)
 //----------------------------------------------------------------------------------------------------
 bool SD_SendCommand(uint8_t cmd,uint8_t b0,uint8_t b1,uint8_t b2,uint8_t b3,uint8_t answer_size,uint8_t *answer)
 { 
+ //старые карты могут не работать, если команду посылать сразу
+ SD_TransmitData(0xff);
+ SD_TransmitData(0xff);
  //отправляем команду и считаем её CRC7
  uint8_t crc7=0; 
  uint8_t cmd_buf[5]={cmd,b3,b2,b1,b0};
@@ -287,8 +290,8 @@ bool SD_SendCommand(uint8_t cmd,uint8_t b0,uint8_t b1,uint8_t b2,uint8_t b3,uint
  for(n=1;n<answer_size;n++)
  {
   answer[n]=SD_TransmitData(0xff);
- }
- SD_TransmitData(0xff);
+ } 
+ SD_TransmitData(0xff);//принимаем CRC 
  return(true);//ответ принят
 }
 //----------------------------------------------------------------------------------------------------

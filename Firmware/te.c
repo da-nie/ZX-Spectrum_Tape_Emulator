@@ -36,7 +36,7 @@ volatile uint8_t Speed;//скорость работы
 #define TAPE_OUT_DATA 3
 #define TAPE_OUT_STOP 4
 
-#define MAX_LEVEL 5
+#define MAX_LEVEL 20
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //настройки кнопок
@@ -167,7 +167,9 @@ void TapeMenu(void)
   _delay_ms(2000);
   return;//нет ни одного файла
  }
- int8_t Directory;//это директория
+ int8_t hidden;//файл скрытый
+ int8_t system;//файл системный
+ int8_t directory;//это директория
  uint32_t FirstCluster;//первый кластер файла
  uint32_t Size;//размер файла
  uint16_t index=1;//номер файла
@@ -178,8 +180,8 @@ void TapeMenu(void)
  { 
   //выводим данные с SD-карты
   //читаем имя файла 
-  if (FAT_GetFileSearch(String,&FirstCluster,&Size,&Directory)==true) WH1602_SetTextDownLine(String);
-  if (Directory==false) sprintf(String,"[%02u:%05u] Файл",level,index);
+  if (FAT_GetFileSearch(String,&FirstCluster,&Size,&directory,&hidden,&system)==true) WH1602_SetTextDownLine(String);
+  if (directory==false) sprintf(String,"[%02u:%05u] Файл",level,index);
                    else sprintf(String,"[%02u:%05u] Папка",level,index);
   WH1602_SetTextUpLine(String);  
   _delay_ms(200);
@@ -210,11 +212,11 @@ void TapeMenu(void)
    }   
    if (BUTTON_SELECT_PIN&(1<<BUTTON_SELECT))
    {
-    if (Directory==0) OutputImage();//для файла - запускаем на выполнение
+    if (directory==0) OutputImage();//для файла - запускаем на выполнение
     else
 	{
 	 if (level<MAX_LEVEL) level_index[level]=index;//запоминаем достигнутый уровень
-     if (Directory<0)//если мы вышли на уровень вверх
+     if (directory<0)//если мы вышли на уровень вверх
 	 {
 	  if (level>0) level--;
 	 }

@@ -86,8 +86,6 @@ static const char Text_MBR_Found[] PROGMEM = "   Найден MBR   \0";
 
 extern char String[25];//строка
 
-
-
 uint8_t Sector[256];//данные для сектора
 uint32_t LastReadSector=0xffffffffUL;//последний считанный сектор
 uint32_t FATOffset=0;//смещение FAT
@@ -139,7 +137,7 @@ uint32_t GetByte(uint32_t offset)
  {
   LastReadSector=s;
   bool first=true;
-  if ((offset&0x1ffUL)>=256) first=false;
+  if ((offset&0x1ffUL)>=256) first=false;  
   SD_ReadBlock(s>>1UL,Sector,first);
   //ошибки не проверяем, всё равно ничего сделать не сможем - либо работает, либо нет
  }
@@ -369,7 +367,9 @@ bool FAT_BeginFileSearch(void)
 {
  uint32_t FirstCluster;//первый кластер файла
  uint32_t Size;//размер файла
- int8_t Directory;//не директория ли файл
+ int8_t directory;//не директория ли файл
+ int8_t hidden;//не скрытый ли файл
+ int8_t system;//не системный ли файл 
  
  sFATRecordPointer.CurrentFolderAddr=sFATRecordPointer.BeginFolderAddr;
  sFATRecordPointer.CurrentFolderCluster=sFATRecordPointer.BeginFolderCluster;
@@ -382,11 +382,14 @@ bool FAT_BeginFileSearch(void)
  //переходим к первому нужному нам файлу
  while(1)
  {
-  if (FAT_GetFileSearch(NULL,&FirstCluster,&Size,&Directory)==false)
+  if (FAT_GetFileSearch(NULL,&FirstCluster,&Size,&directory,&hidden,&system)==false)
   {
    if (FAT_NextFileSearch()==false) return(false);
-  } 
-  else return(true);
+  }
+  else
+  {
+   if (hidden==0 && system==0) return(true);//системные и скрытые файлы пропускаем
+  }
  }
  return(false);
 }
@@ -433,7 +436,10 @@ bool FAT_PrevFileSearch(void)
   if (res==true)
   {  
    uint8_t type=GetByte(sFATRecordPointer_Copy.CurrentFolderAddr+11UL);
-   if (type&ATTR_VOLUME_ID) continue;//этот файл - имя диска     
+   if (type&ATTR_VOLUME_ID) continue;//этот файл - имя диска
+   if (type&ATTR_HIDDEN) continue;//этот файл скрытый
+   if (type&ATTR_SYSTEM) continue;//этот файл системный   
+   
    if ((type&ATTR_DIRECTORY)==0)//это файл
    {
     uint8_t a=GetByte(sFATRecordPointer_Copy.CurrentFolderAddr+10UL);
@@ -488,7 +494,9 @@ bool FAT_NextFileSearch(void)
   if (res==true)
   {
    uint8_t type=GetByte(sFATRecordPointer_Copy.CurrentFolderAddr+11UL);
-   if (type&ATTR_VOLUME_ID) continue;//этот файл - имя диска     
+   if (type&ATTR_VOLUME_ID) continue;//этот файл - имя диска    
+   if (type&ATTR_HIDDEN) continue;//этот файл скрытый
+   if (type&ATTR_SYSTEM) continue;//этот файл системный   
    if ((type&ATTR_DIRECTORY)==0)//это файл
    {
     uint8_t a=GetByte(sFATRecordPointer_Copy.CurrentFolderAddr+10UL);
@@ -505,11 +513,13 @@ bool FAT_NextFileSearch(void)
 //----------------------------------------------------------------------------------------------------
 //получить параметры текущего найденного файла в каталоге
 //----------------------------------------------------------------------------------------------------
-bool FAT_GetFileSearch(char *filename,uint32_t *FirstCluster,uint32_t *Size,int8_t *directory)
+bool FAT_GetFileSearch(char *filename,uint32_t *FirstCluster,uint32_t *Size,int8_t *directory,int8_t *hidden,int8_t *system)
 {
  uint8_t n;
  bool res=true;
  *directory=0;
+ *hidden=0;
+ *system=0;
  if (filename!=NULL)
  {
   for(n=0;n<11;n++) filename[n]=32;
@@ -563,7 +573,9 @@ bool FAT_GetFileSearch(char *filename,uint32_t *FirstCluster,uint32_t *Size,int8
    uint8_t b=GetByte(sFATRecordPointer.CurrentFolderAddr+1UL);  
    if (a==(uint8_t)'.' && b==(uint8_t)'.') *directory=-1;//на директорию выше
                                         else *directory=1;//на директорию ниже
-  } 
+  }
+  if (type&ATTR_SYSTEM) *system=1;
+  if (type&ATTR_HIDDEN) *hidden=1;  
   //первый кластер файла  
   *FirstCluster=(GetShort(sFATRecordPointer.CurrentFolderAddr+20UL)<<16)|GetShort(sFATRecordPointer.CurrentFolderAddr+26UL);
   //узнаём размер файла в байтах
@@ -632,9 +644,11 @@ bool FAT_WriteBlock(uint16_t *BlockSize,uint16_t Block)
  uint16_t dram_addr=0;//адрес в динамической памяти
  uint16_t current_block=0;//текущий номер блока
  uint16_t block_size=0;//размер блока
- int8_t Directory;//не директория ли файл
+ int8_t directory;//не директория ли файл
+ int8_t hidden;//скрытый ли файл
+ int8_t system;//системный ли файл
  *BlockSize=0;
- if (FAT_GetFileSearch(String,&CurrentCluster,&Size,&Directory)==false) return(false); 
+ if (FAT_GetFileSearch(String,&CurrentCluster,&Size,&directory,&hidden,&system)==false) return(false); 
  uint8_t mode=0;
  while(i<Size)
  {

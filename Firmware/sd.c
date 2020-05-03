@@ -382,9 +382,9 @@ bool SD_ReadBlockByte(uint8_t *byte)
  return(true);
 }
 //----------------------------------------------------------------------------------------------------
-//считать блок в 512 байт в память
+//считать блок в 256 байт в память
 //----------------------------------------------------------------------------------------------------
-bool SD_ReadBlock(uint32_t BlockAddr,uint8_t *Addr)
+bool SD_ReadBlock(uint32_t BlockAddr,uint8_t *Addr,bool first)
 {
  if (SDType!=SD_TYPE_SD_V2_HC) BlockAddr<<=9;//умножаем на 512 для старых карт памяти
  //даём команду чтения блока
@@ -405,9 +405,19 @@ bool SD_ReadBlock(uint32_t BlockAddr,uint8_t *Addr)
   _delay_us(10);
  }
  if (n==65535) return(false);//маркер начала данных не получен
- for(n=0;n<512;n++,Addr++)
+ for(n=0;n<512;n++)
  {
-  *Addr=SD_TransmitData(0xff);//читаем байт с SD-карты
+  uint8_t b=SD_TransmitData(0xff);//читаем байт с SD-карты
+  if (first==true && n<256) 
+  {
+   *Addr=b;
+   Addr++;
+  }
+  if (first==false && n>=256) 
+  {
+   *Addr=b;
+   Addr++;
+  }
  }
  //считываем CRC
  SD_TransmitData(0xff);

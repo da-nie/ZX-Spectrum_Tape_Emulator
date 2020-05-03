@@ -86,7 +86,9 @@ static const char Text_MBR_Found[] PROGMEM = "   Найден MBR   \0";
 
 extern char String[25];//строка
 
-uint8_t Sector[512];//данные для сектора
+
+
+uint8_t Sector[256];//данные для сектора
 uint32_t LastReadSector=0xffffffffUL;//последний считанный сектор
 uint32_t FATOffset=0;//смещение FAT
 
@@ -132,14 +134,16 @@ bool FAT_RecordPointerStepReverse(struct SFATRecordPointer *sFATRecordPointerPtr
 uint32_t GetByte(uint32_t offset)
 {
  offset+=FATOffset;
- uint32_t s=offset>>9UL;//делим на 512
+ uint32_t s=offset>>8UL;//делим на 256
  if (s!=LastReadSector)
  {
   LastReadSector=s;
-  SD_ReadBlock(s,Sector);
+  bool first=true;
+  if ((offset&0x1ffUL)>=256) first=false;
+  SD_ReadBlock(s>>1UL,Sector,first);
   //ошибки не проверяем, всё равно ничего сделать не сможем - либо работает, либо нет
  }
- return(Sector[offset&0x1FFUL]);
+ return(Sector[offset&0xFFUL]);
 }
 //----------------------------------------------------------------------------------------------------
 //считать два байта

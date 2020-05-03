@@ -139,8 +139,8 @@ void SD_Init(void)
  }
  SD_CS_PORT&=0xff^(1<<SD_CS);
  //настраиваем SP
- SPCR=(0<<SPIE)|(1<<SPE)|(0<<DORD)|(1<<MSTR)|(0<<CPOL)|(0<<CPHA)|(1<<SPR1)|(1<<SPR0);
- SPSR=(0<<SPI2X);//удвоенная скорость SPI
+ SPCR=(0<<SPIE)|(1<<SPE)|(0<<DORD)|(1<<MSTR)|(0<<CPOL)|(0<<CPHA)|(0<<SPR1)|(0<<SPR0);
+ SPSR=(1<<SPI2X);//удвоенная скорость SPI
  _delay_ms(100);
  
  uint8_t answer[ANSWER_R3_SIZE];//ответ от карты

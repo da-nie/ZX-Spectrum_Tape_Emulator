@@ -30,11 +30,13 @@ volatile uint8_t Speed;//скорость работы
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //макроопределения
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-static const uint8_t TAPE_OUT_LEAD=0;
-static const uint8_t TAPE_OUT_SYNCHRO_1=1;
-static const uint8_t TAPE_OUT_SYNCHRO_2=2;
-static const uint8_t TAPE_OUT_DATA=3;
-static const uint8_t TAPE_OUT_STOP=4;
+#define TAPE_OUT_LEAD 0
+#define TAPE_OUT_SYNCHRO_1 1
+#define TAPE_OUT_SYNCHRO_2 2
+#define TAPE_OUT_DATA 3
+#define TAPE_OUT_STOP 4
+
+#define MAX_LEVEL 5
 
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //настройки кнопок
@@ -169,7 +171,7 @@ void TapeMenu(void)
  uint32_t FirstCluster;//первый кластер файла
  uint32_t Size;//размер файла
  uint16_t index=1;//номер файла
- uint16_t level_index[20];//20 уровней вложенности
+ static uint16_t level_index[MAX_LEVEL];//MAX_LEVEL уровней вложенности
  uint8_t level=0;
  level_index[0]=index;
  while(1)
@@ -211,20 +213,19 @@ void TapeMenu(void)
     if (Directory==0) OutputImage();//для файла - запускаем на выполнение
     else
 	{
-	 if (level<20) level_index[level]=index;//запоминаем достигнутый уровень
+	 if (level<MAX_LEVEL) level_index[level]=index;//запоминаем достигнутый уровень
      if (Directory<0)//если мы вышли на уровень вверх
 	 {
 	  if (level>0) level--;
 	 }
 	 else
-	 {
+	 {	 
 	  level++;
-      if (level<20) level_index[level]=1;
+      if (level<MAX_LEVEL) level_index[level]=1;
 	 }
-     FAT_EnterDirectory(FirstCluster);//заходим в директорию	
-	 //проматываем до выбранного файла
-	 index=1;
-	 if (level<20)
+     FAT_EnterDirectory(FirstCluster);//заходим в директорию
+ 	 index=1;
+	 if (level<MAX_LEVEL)
 	 {
 	  for(uint16_t s=1;s<level_index[level];s++)
 	  {

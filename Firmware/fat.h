@@ -15,7 +15,7 @@ void FAT_Init(void);//инициализация FAT
 bool FAT_BeginFileSearch(void);//начать поиск файла в кталоге
 bool FAT_PrevFileSearch(void);//вернуться к предыдущему файлу в каталоге
 bool FAT_NextFileSearch(void);//продложить поиск файла в каталоге
-bool FAT_GetFileSearch(char *filename,uint32_t *FirstCluster,uint32_t *Size,int8_t *directory);//получить параметры текущего найденного файла в каталоге
+bool FAT_GetFileSearch(char *filename,uint32_t *FirstCluster,uint32_t *Size,int8_t *directory,int8_t *hidden,int8_t *system);//получить параметры текущего найденного файла в каталоге
 bool FAT_EnterDirectory(uint32_t FirstCluster);//зайти в директорию и найти первый файл
 bool FAT_WriteBlock(uint16_t *BlockSize,uint16_t Block);//записать в ОЗУ блок файла
 

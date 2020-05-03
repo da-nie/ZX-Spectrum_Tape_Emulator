@@ -22,6 +22,7 @@
 
 #define SD_DO_DDR   DDRB
 #define SD_DO_PORT  PORTB
+#define SD_DO_PIN   PINB
 #define SD_DO       6
 
 #define SD_SCK_DDR  DDRB
@@ -105,10 +106,32 @@ uint16_t GetBits(uint8_t *data,uint8_t begin,uint8_t end)
 //----------------------------------------------------------------------------------------------------
 static inline uint8_t SD_TransmitData(uint8_t data)
 { 
+ uint8_t response=0;
+ for (uint8_t i=0;i<8;i++,data=data<<1)
+ {
+  response=response<<1;
+  if (data&128) SD_DI_PORT|=(1<<SD_DI);
+           else SD_DI_PORT&=0xff^(1<<SD_DI);
+  SD_SCK_PORT|=(1<<SD_SCK);
+  asm volatile ("nop"::);
+  asm volatile ("nop"::);
+  if (SD_DO_PIN&(1<<SD_DO)) response|=1;
+  asm volatile ("nop"::);
+  asm volatile ("nop"::);
+  SD_SCK_PORT&=0xff^(1<<SD_SCK);
+  asm volatile ("nop"::);
+  asm volatile ("nop"::);
+  asm volatile ("nop"::);
+  asm volatile ("nop"::);
+ }
+ return(response);
+/*
+
  SPDR=data;//передаЄм
  while(!(SPSR&(1<<SPIF)));//ждЄм завершени€ передачи и получени€ ответа
  uint8_t res=SPDR;
  return(res);
+ */
 }
 
 
@@ -138,9 +161,14 @@ void SD_Init(void)
   _delay_ms(1);
  }
  SD_CS_PORT&=0xff^(1<<SD_CS);
+
+ /*
  //настраиваем SP
  SPCR=(0<<SPIE)|(1<<SPE)|(0<<DORD)|(1<<MSTR)|(0<<CPOL)|(0<<CPHA)|(0<<SPR1)|(0<<SPR0);
  SPSR=(1<<SPI2X);//удвоенна€ скорость SPI
+ 
+ */
+ 
  _delay_ms(100);
  
  uint8_t answer[ANSWER_R3_SIZE];//ответ от карты
